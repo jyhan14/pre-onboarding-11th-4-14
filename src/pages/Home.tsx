@@ -1,7 +1,12 @@
 import React from 'react';
+import Search from '../components/features/search/InputField';
 
 const Home = () => {
-  return <div>Home</div>;
+  return (
+    <>
+      <Search />
+    </>
+  );
 };
 
 export default Home;

@@ -1,5 +1,14 @@
+import Layout from './components/ui/Layout';
+import Home from './pages/Home';
+
 function App() {
-  return <div className='App'>test</div>;
+  return (
+    <>
+      <Layout>
+        <Home />
+      </Layout>
+    </>
+  );
 }
 
 export default App;
