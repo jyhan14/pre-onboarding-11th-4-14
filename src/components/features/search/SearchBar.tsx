@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { styled } from 'styled-components';
 import { getSicks } from '../../../api/sick';
-import ResultBox from './ResultBox';
+import ResultBox, { ResultBoxRef } from './ResultBox';
 import { useDebounce } from '../../../hooks/useDebounce';
 
-interface SearchResult {
+export interface SearchResult {
   sickCd: string;
   sickNm: string;
 }
@@ -12,14 +12,11 @@ interface SearchResult {
 const SearchBar = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showResultBox, setShowResultBox] = useState(false);
-
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const resultBoxRef = useRef<ResultBoxRef | null>(null);
 
   // 비동기 함수로 검색 결과를 가져오고 캐시에 저장하는 함수
-  const fetchSearchResults = async (
-    value: string,
-    setSearchResults: React.Dispatch<React.SetStateAction<SearchResult[]>>,
-  ) => {
+  const fetchSearchResults = async (value: string) => {
     const cache = await caches.open('searchResultsCache');
     const cachedResponse = await cache.match(value);
 
@@ -35,27 +32,27 @@ const SearchBar = () => {
           cache.put(value, new Response(JSON.stringify(data))); // 추천 검색 결과를 캐시에 저장
         })
         .catch(error => {
-          console.error('Error fetching search results:', error);
+          console.error('검색 결과를 가져오는 중 오류 발생:', error);
           setSearchResults([]); // 에러 발생 시 검색 결과 초기화
         });
     }
   };
 
-  const handleOnChangeInput = useDebounce(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOnChangeInput = useDebounce((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim();
     if (value === '') {
       setSearchResults([]);
-      setShowResultBox(false); // Hide the result box when the input is empty
+      setShowResultBox(false); // 입력이 비어있을 때 결과 박스 숨기기
     } else {
-      fetchSearchResults(value, setSearchResults);
-      setShowResultBox(true); // Show the result box only when there is a non-empty value
+      fetchSearchResults(value);
+      setShowResultBox(true); // 입력 값이 있을 때만 결과 박스 보이기
     }
   }, 1000);
 
   const handleSearch = () => {
     const value = searchInputRef.current?.value.trim() || '';
     if (value !== '') {
-      fetchSearchResults(value, setSearchResults);
+      fetchSearchResults(value);
       setShowResultBox(true);
     }
   };
@@ -78,6 +75,32 @@ const SearchBar = () => {
     }
   };
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter') {
+      if (resultBoxRef.current) {
+        resultBoxRef.current.handleKeyDown(e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('click', handleOutsideClick);
+
+    // 컴포넌트가 언마운트될 때 이벤트 리스너 정리
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
+
+  const handleOutsideClick = (e: MouseEvent) => {
+    const searchInput = document.querySelector('[data-testid="search-input"]');
+
+    // 클릭 타겟이 SearchInput 요소가 아닌 경우 결과 박스 숨기기
+    if (searchInput && !searchInput.contains(e.target as Node) && e.target !== searchInput) {
+      setShowResultBox(false);
+    }
+  };
+
   return (
     <SearchContainer>
       <form onSubmit={handleFormSubmit}>
@@ -85,11 +108,7 @@ const SearchBar = () => {
           type='text'
           ref={searchInputRef}
           onChange={handleOnChangeInput}
-          onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === 'Enter') {
-              handleSearch();
-            }
-          }}
+          onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           data-testid='search-input'
         />
@@ -98,8 +117,10 @@ const SearchBar = () => {
       {(showResultBox || searchResults.length > 0) && (
         <div style={{ position: 'relative' }}>
           <ResultBox
+            ref={resultBoxRef}
             searchResults={searchResults}
             searchInput={searchInputRef.current?.value || ''}
+            searchInputRef={searchInputRef} // searchInputRef를 prop으로 전달
           />
         </div>
       )}
