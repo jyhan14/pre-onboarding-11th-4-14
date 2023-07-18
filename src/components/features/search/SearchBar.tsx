@@ -53,13 +53,12 @@ const SearchBar = () => {
           })
           .catch(error => {
             console.error('Error fetching search results:', error);
-            setSearchResults([]);// 에러 발생 시 검색 결과 초기화
+            setSearchResults([]); // 에러 발생 시 검색 결과 초기화
           });
       }
     }
   }, 1000);
 
-   // 검색 버튼 클릭 시 실행되는 함수
   const handleSearch = () => {
     const value = searchInputRef.current?.value.trim() || '';
     if (value !== '') {
@@ -67,10 +66,10 @@ const SearchBar = () => {
         cache.match(value).then(cachedResponse => {
           if (cachedResponse) {
             cachedResponse.json().then(data => {
-              setSearchResults(data); //캐시에서 검색 결과 가져오기
+              setSearchResults(data); // 캐시에서 검색 결과 가져오기
             });
           } else {
-               // 캐시에 데이터가 없는 경우 API 호출을 통해 검색 결과 가져오기
+            // 캐시에 데이터가 없는 경우 API 호출을 통해 검색 결과 가져오기
             getSicks(value)
               .then(data => {
                 setSearchResults(data);
@@ -85,16 +84,31 @@ const SearchBar = () => {
       });
       setRecentSearchWords([value, ...recentSearchWords.filter(word => word !== value)]);
     }
+
+    // resultbox를 항상 보이도록 설정
+    setShowResultBox(true);
   };
 
-   // 외부 클릭 시 검색 결과 숨기는 함수
+  // 검색 버튼 클릭 시 실행되는 함수
+  const handleSearchClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    e.preventDefault(); // 버튼 클릭 기본 동작 막기
+    handleSearch();
+  };
+
+  // 폼 제출 시 실행되는 함수
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // 폼 제출 기본 동작 막기
+    handleSearch();
+  };
+
+  // 외부 클릭 시 검색 결과 숨기는 함수
   const handleOutsideClick = (e: MouseEvent) => {
     if (
       searchInputRef.current &&
       !searchInputRef.current.contains(e.target as Node) &&
       e.target !== searchInputRef.current
     ) {
-      setSearchResults([]);  // 검색 결과 숨기기
+      setSearchResults([]); // 검색 결과 숨기기
     }
   };
 
@@ -109,21 +123,23 @@ const SearchBar = () => {
 
   return (
     <SearchContainer>
-      <SearchInput
-        type='text'
-        ref={searchInputRef}
-        onChange={handleOnChangeInput}
-        onClick={() => setSearchResults([])}
-        onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
-          if (e.key === 'Enter') {
-            handleSearch();
-          }
-        }}
-        onFocus={() => setShowResultBox(true)} // input 필드가 포커스 될 때 ResultBox 보이기
-        onBlur={() => setShowResultBox(false)} //  input 필드에서 포커스가 사라질 때 ResultBox 숨기기
-        data-testid='search-input'
-      />
-      <button onClick={() => handleSearch}>검색</button>
+      <form onSubmit={handleFormSubmit}>
+        <SearchInput
+          type='text'
+          ref={searchInputRef}
+          onChange={handleOnChangeInput}
+          onClick={() => setShowResultBox(true)} // 검색 버튼 또는 엔터를 눌렀을 때 resultbox가 나타나도록 수정
+          onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') {
+              handleSearch();
+            }
+          }}
+          onFocus={() => setShowResultBox(true)}
+          onBlur={() => setShowResultBox(false)}
+          data-testid='search-input'
+        />
+        <button onClick={handleSearchClick}>검색</button>
+      </form>
       {showResultBox && (
         <div style={{ position: 'relative' }}>
           <ResultBox
