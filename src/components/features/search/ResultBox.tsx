@@ -1,5 +1,3 @@
-// ResultBox.tsx
-
 import React, { useEffect, useState } from 'react';
 import { styled } from 'styled-components';
 
@@ -17,6 +15,7 @@ interface ResultBoxProps {
 const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput, recentSearchWords }) => {
   const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isShowingRecentSearches, setIsShowingRecentSearches] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -34,6 +33,7 @@ const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput, recen
         setFilteredResults(filteredData);
       } catch (error) {
         console.error('검색 결과 필터링 중 오류 발생:', error);
+        setFilteredResults([]);
       } finally {
         setIsLoading(false);
       }
@@ -43,17 +43,13 @@ const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput, recen
   }, [searchResults, searchInput]);
 
   useEffect(() => {
-    setIsLoading(false);
-  }, [filteredResults]);
+    setIsShowingRecentSearches(searchInput === '' && recentSearchWords.length > 0);
+  }, [searchInput, recentSearchWords]);
 
   return (
     <BoxContainer>
-      <div>
-        <div>{searchInput}</div>
-      </div>
-
-      {/* 최근 검색어 표시 */}
-      {recentSearchWords.length > 0 && (
+      {isShowingRecentSearches ? (
+        // 최근 검색어 표시
         <>
           <RecentSearchLabel>최근 검색어</RecentSearchLabel>
           <RecentSearchList>
@@ -62,21 +58,25 @@ const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput, recen
             ))}
           </RecentSearchList>
         </>
-      )}
-
-      {isLoading ? (
-        <div>검색중...</div>
       ) : (
+        // 검색 결과 표시 (적용 가능한 경우)
         <>
-          {filteredResults.length > 0 ? (
+          <div>{searchInput}</div>
+          {!isLoading ? (
             <>
-              <ResultLabel>추천 검색결과</ResultLabel>
-              {filteredResults.map(result => (
-                <div key={result.sickCd}>검색 결과: {result.sickNm}</div>
-              ))}
+              {searchResults.length > 0 ? (
+                <>
+                  <ResultLabel>추천 검색결과</ResultLabel>
+                  {filteredResults.map(result => (
+                    <div key={result.sickCd}>검색 결과: {result.sickNm}</div>
+                  ))}
+                </>
+              ) : (
+                <div>검색결과 없음</div> //검색 결과가 비어있을 때 "검색결과 없음" 표시
+              )}
             </>
           ) : (
-            <div>검색결과 없음</div>
+            <div>검색중...</div> // 로딩 중일 때 "검색중..." 표시
           )}
         </>
       )}

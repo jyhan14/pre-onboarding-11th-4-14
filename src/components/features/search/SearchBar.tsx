@@ -1,17 +1,26 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { styled } from 'styled-components';
 import { getSicks } from '../../../api/sick';
 import ResultBox from './ResultBox';
 import { useDebounce } from '../../../hooks/useDebounce';
+import useSessionStorage from '../../../hooks/useSessionStorage';
+
+interface SearchResult {
+  sickCd: string;
+  sickNm: string;
+}
 
 const SearchBar = () => {
-  const [isSearchStart, setIsSearchStart] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [hasSearchStarted, setHasSearchStarted] = useState(false); 
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const [recentSearchWords, setRecentSearchWords] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [recentSearchWords, setRecentSearchWords] = useSessionStorage<string[]>(
+    'recent_search_words',
+    [],
+  );
+  const [showResultBox, setShowResultBox] = useState(false);
 
-   // 컴포넌트 마운트 시 세션 스토리지에서 최근 검색어 로드
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 컴포넌트 마운트 시 세션 스토리지에서 최근 검색어 로드
   useEffect(() => {
     const savedRecentSearchWords = sessionStorage.getItem('recent_search_words');
     if (savedRecentSearchWords) {
@@ -19,74 +28,83 @@ const SearchBar = () => {
     }
   }, []);
 
-  const handleOnChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-   // ref를 사용하기 때문에 검색 입력에 대한 상태 사용이 불필요
-    debounce(e);
-  };
+  useEffect(() => {
+    sessionStorage.setItem('recent_search_words', JSON.stringify(recentSearchWords));
+  }, [recentSearchWords]);
 
-  const debounce = useDebounce((e: React.ChangeEvent<HTMLInputElement>) => {
-    // useRef를 사용하여 검색 입력의 현재 값을 가져온다
+  const handleOnChangeInput = useDebounce((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim();
     if (value === '') {
-      setSearchResults([]); // searchInput이 비어 있는 경우 검색 결과 지우기
-      setHasSearchStarted(false); // searchInput이 비어 있는 경우 검색 상태 재설정
+      setSearchResults([]);
     } else {
-      setHasSearchStarted(true); //검색 프로세스 시작
       getSicks(value)
         .then(data => {
           setSearchResults(data);
         })
         .catch(error => {
           console.error('Error fetching search results:', error);
+          setSearchResults([]);
         });
-
-     // 최근 검색어 목록에 검색어 추가
-      setRecentSearchWords(prevWords => [value, ...prevWords]); // Use array instead of Set
     }
   }, 1000);
 
-// 최근 검색어가 변경될 때마다 세션 스토리지에 저장
-  useEffect(() => {
-    sessionStorage.setItem('recent_search_words', JSON.stringify(recentSearchWords));
-  }, [recentSearchWords]);
-
-  useEffect(() => {
-    document.addEventListener('click', handleOutsideClick);
-
-     // 컴포넌트가 언마운트되면 이벤트 리스너 제거
-    return () => {
-      document.removeEventListener('click', handleOutsideClick);
-    };
-  }, []);
+  const handleSearch = () => {
+    const value = searchInputRef.current?.value.trim() || '';
+    if (value !== '') {
+      getSicks(value)
+        .then(data => {
+          setSearchResults(data);
+          setRecentSearchWords([value, ...recentSearchWords.filter(word => word !== value)]);
+        })
+        .catch(error => {
+          console.error('Error fetching search results:', error);
+          setSearchResults([]);
+        });
+    }
+  };
 
   const handleOutsideClick = (e: MouseEvent) => {
-   // searchInputRef를 사용하여 클릭된 요소가 SearchInput 요소가 아닌지 확인
     if (
       searchInputRef.current &&
       !searchInputRef.current.contains(e.target as Node) &&
       e.target !== searchInputRef.current
     ) {
-      setIsSearchStart(false);
+      setSearchResults([]);
     }
   };
+
+  useEffect(() => {
+    document.addEventListener('click', handleOutsideClick);
+
+    // 컴포넌트가 언마운트되면 이벤트 리스너 제거
+    return () => {
+      document.removeEventListener('click', handleOutsideClick);
+    };
+  }, []);
 
   return (
     <SearchContainer>
       <SearchInput
         type='text'
-        ref={searchInputRef} // ref를 입력 요소에 할당
+        ref={searchInputRef}
         onChange={handleOnChangeInput}
-        onClick={() => setIsSearchStart(true)}
+        onClick={() => setSearchResults([])}
+        onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === 'Enter') {
+            handleSearch();
+          }
+        }}
+        onFocus={() => setShowResultBox(true)} // input 필드가 포커스 될 때 ResultBox 보이기
+        onBlur={() => setShowResultBox(false)} //  input 필드에서 포커스가 사라질 때 ResultBox 숨기기
         data-testid='search-input'
       />
-      <button>검색</button>
-      {isSearchStart && hasSearchStarted && (
+      <button onClick={() => handleSearch}>검색</button>
+      {showResultBox && ( //showResultBox 상태에 따라 ResultBox 표시
         <div style={{ position: 'relative' }}>
-          {/* searchResults, searchInput 및 recentSearchWords를 속성으로 전달 */}
           <ResultBox
             searchResults={searchResults}
             searchInput={searchInputRef.current?.value || ''}
-            recentSearchWords={recentSearchWords} // 최근 검색어를 추가합니다.
+            recentSearchWords={recentSearchWords}
           />
         </div>
       )}
