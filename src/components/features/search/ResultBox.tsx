@@ -10,9 +10,15 @@ interface ResultBoxProps {
   searchResults: SearchResult[];
   searchInput: string;
   recentSearchWords: string[];
+  setSearchResults: React.Dispatch<React.SetStateAction<SearchResult[]>>; // Add this line
 }
 
-const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput, recentSearchWords }) => {
+const ResultBox: React.FC<ResultBoxProps> = ({
+  searchResults,
+  searchInput,
+  recentSearchWords,
+  setSearchResults,
+}) => {
   const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isShowingRecentSearches, setIsShowingRecentSearches] = useState(false);

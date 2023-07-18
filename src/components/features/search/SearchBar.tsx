@@ -32,44 +32,69 @@ const SearchBar = () => {
     sessionStorage.setItem('recent_search_words', JSON.stringify(recentSearchWords));
   }, [recentSearchWords]);
 
-  const handleOnChangeInput = useDebounce((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOnChangeInput = useDebounce(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim();
     if (value === '') {
       setSearchResults([]);
     } else {
-      getSicks(value)
-        .then(data => {
-          setSearchResults(data);
-        })
-        .catch(error => {
-          console.error('Error fetching search results:', error);
-          setSearchResults([]);
+      const cache = await caches.open('searchResultsCache');
+      const cachedResponse = await cache.match(value);
+
+      if (cachedResponse) {
+        cachedResponse.json().then(data => {
+          setSearchResults(data); // 캐시에서 검색 결과 가져오기
         });
+      } else {
+        // 캐시에 데이터가 없는 경우 API 호출을 통해 검색 결과 가져오기
+        getSicks(value)
+          .then(data => {
+            setSearchResults(data);
+            cache.put(value, new Response(JSON.stringify(data))); // 추천 검색 결과를 캐시에 저장
+          })
+          .catch(error => {
+            console.error('Error fetching search results:', error);
+            setSearchResults([]);// 에러 발생 시 검색 결과 초기화
+          });
+      }
     }
   }, 1000);
 
+   // 검색 버튼 클릭 시 실행되는 함수
   const handleSearch = () => {
     const value = searchInputRef.current?.value.trim() || '';
     if (value !== '') {
-      getSicks(value)
-        .then(data => {
-          setSearchResults(data);
-          setRecentSearchWords([value, ...recentSearchWords.filter(word => word !== value)]);
-        })
-        .catch(error => {
-          console.error('Error fetching search results:', error);
-          setSearchResults([]);
+      caches.open('searchResultsCache').then(cache => {
+        cache.match(value).then(cachedResponse => {
+          if (cachedResponse) {
+            cachedResponse.json().then(data => {
+              setSearchResults(data); //캐시에서 검색 결과 가져오기
+            });
+          } else {
+               // 캐시에 데이터가 없는 경우 API 호출을 통해 검색 결과 가져오기
+            getSicks(value)
+              .then(data => {
+                setSearchResults(data);
+                cache.put(value, new Response(JSON.stringify(data))); // 추천 검색 결과를 캐시에 저장
+              })
+              .catch(error => {
+                console.error('Error fetching search results:', error);
+                setSearchResults([]); // 에러 발생 시 검색 결과 초기화
+              });
+          }
         });
+      });
+      setRecentSearchWords([value, ...recentSearchWords.filter(word => word !== value)]);
     }
   };
 
+   // 외부 클릭 시 검색 결과 숨기는 함수
   const handleOutsideClick = (e: MouseEvent) => {
     if (
       searchInputRef.current &&
       !searchInputRef.current.contains(e.target as Node) &&
       e.target !== searchInputRef.current
     ) {
-      setSearchResults([]);
+      setSearchResults([]);  // 검색 결과 숨기기
     }
   };
 
@@ -99,12 +124,13 @@ const SearchBar = () => {
         data-testid='search-input'
       />
       <button onClick={() => handleSearch}>검색</button>
-      {showResultBox && ( //showResultBox 상태에 따라 ResultBox 표시
+      {showResultBox && (
         <div style={{ position: 'relative' }}>
           <ResultBox
             searchResults={searchResults}
             searchInput={searchInputRef.current?.value || ''}
             recentSearchWords={recentSearchWords}
+            setSearchResults={setSearchResults}
           />
         </div>
       )}
