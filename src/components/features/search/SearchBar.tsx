@@ -3,7 +3,6 @@ import { styled } from 'styled-components';
 import { getSicks } from '../../../api/sick';
 import ResultBox from './ResultBox';
 import { useDebounce } from '../../../hooks/useDebounce';
-import useSessionStorage from '../../../hooks/useSessionStorage';
 
 interface SearchResult {
   sickCd: string;
@@ -12,25 +11,9 @@ interface SearchResult {
 
 const SearchBar = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [recentSearchWords, setRecentSearchWords] = useSessionStorage<string[]>(
-    'recent_search_words',
-    [],
-  );
   const [showResultBox, setShowResultBox] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-
-  // 컴포넌트 마운트 시 세션 스토리지에서 최근 검색어 로드
-  useEffect(() => {
-    const savedRecentSearchWords = sessionStorage.getItem('recent_search_words');
-    if (savedRecentSearchWords) {
-      setRecentSearchWords(JSON.parse(savedRecentSearchWords));
-    }
-  }, []);
-
-  useEffect(() => {
-    sessionStorage.setItem('recent_search_words', JSON.stringify(recentSearchWords));
-  }, [recentSearchWords]);
 
   // 비동기 함수로 검색 결과를 가져오고 캐시에 저장하는 함수
   const fetchSearchResults = async (
@@ -71,12 +54,12 @@ const SearchBar = () => {
     const value = searchInputRef.current?.value.trim() || '';
     if (value !== '') {
       fetchSearchResults(value, setSearchResults);
-      setRecentSearchWords([value, ...recentSearchWords.filter(word => word !== value)]);
     }
 
     // resultbox를 항상 보이도록 설정
     setShowResultBox(true);
   };
+
   // 검색 버튼 클릭 시 실행되는 함수
   const handleSearchClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault(); // 버튼 클릭 기본 동작 막기
@@ -130,12 +113,7 @@ const SearchBar = () => {
       </form>
       {showResultBox && (
         <div style={{ position: 'relative' }}>
-          <ResultBox
-            searchResults={searchResults}
-            searchInput={searchInputRef.current?.value || ''}
-            recentSearchWords={recentSearchWords}
-            setSearchResults={setSearchResults}
-          />
+          <ResultBox searchResults={searchResults} searchInput={searchInputRef.current?.value || ''} />
         </div>
       )}
     </SearchContainer>

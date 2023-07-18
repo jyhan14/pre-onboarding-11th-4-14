@@ -9,19 +9,11 @@ interface SearchResult {
 interface ResultBoxProps {
   searchResults: SearchResult[];
   searchInput: string;
-  recentSearchWords: string[];
-  setSearchResults: React.Dispatch<React.SetStateAction<SearchResult[]>>; // Add this line
 }
 
-const ResultBox: React.FC<ResultBoxProps> = ({
-  searchResults,
-  searchInput,
-  recentSearchWords,
-  setSearchResults,
-}) => {
+const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput }) => {
   const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isShowingRecentSearches, setIsShowingRecentSearches] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -31,7 +23,7 @@ const ResultBox: React.FC<ResultBoxProps> = ({
         const filteredData = searchResults.filter(
           result =>
             result.sickNm.toLowerCase().includes(searchInput.toLowerCase()) &&
-            !result.sickCd.toLowerCase().includes(searchInput.toLowerCase()),
+            !result.sickCd.toLowerCase().includes(searchInput.toLowerCase())
         );
 
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -48,43 +40,24 @@ const ResultBox: React.FC<ResultBoxProps> = ({
     filterResults();
   }, [searchResults, searchInput]);
 
-  useEffect(() => {
-    setIsShowingRecentSearches(searchInput === '' && recentSearchWords.length > 0);
-  }, [searchInput, recentSearchWords]);
-
   return (
     <BoxContainer>
-      {isShowingRecentSearches ? (
-        // 최근 검색어 표시
+      <div>{searchInput}</div>
+      {!isLoading ? (
         <>
-          <RecentSearchLabel>최근 검색어</RecentSearchLabel>
-          <RecentSearchList>
-            {recentSearchWords.map(word => (
-              <RecentSearchItem key={word}>{word}</RecentSearchItem>
-            ))}
-          </RecentSearchList>
-        </>
-      ) : (
-        // 검색 결과 표시 (적용 가능한 경우)
-        <>
-          <div>{searchInput}</div>
-          {!isLoading ? (
+          {searchResults.length > 0 ? (
             <>
-              {searchResults.length > 0 ? (
-                <>
-                  <ResultLabel>추천 검색결과</ResultLabel>
-                  {filteredResults.map(result => (
-                    <div key={result.sickCd}>검색 결과: {result.sickNm}</div>
-                  ))}
-                </>
-              ) : (
-                <div>검색결과 없음</div> //검색 결과가 비어있을 때 "검색결과 없음" 표시
-              )}
+              <ResultLabel>추천 검색결과</ResultLabel>
+              {filteredResults.map(result => (
+                <div key={result.sickCd}>검색 결과: {result.sickNm}</div>
+              ))}
             </>
           ) : (
-            <div>검색중...</div> // 로딩 중일 때 "검색중..." 표시
+            <div>검색결과 없음</div> //검색 결과가 비어있을 때 "검색결과 없음" 표시
           )}
         </>
+      ) : (
+        <div>검색중...</div> // 로딩 중일 때 "검색중..." 표시
       )}
     </BoxContainer>
   );
@@ -111,26 +84,4 @@ const ResultLabel = styled.div`
   font-size: 16px;
   font-weight: bold;
   margin-bottom: 8px;
-`;
-
-const RecentSearchLabel = styled.div`
-  font-size: 14px;
-  font-weight: bold;
-  margin-bottom: 4px;
-`;
-
-const RecentSearchList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-`;
-
-const RecentSearchItem = styled.div`
-  margin-right: 8px;
-  margin-bottom: 8px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: #f2f2f2;
-  font-size: 14px;
-  cursor: pointer;
 `;
