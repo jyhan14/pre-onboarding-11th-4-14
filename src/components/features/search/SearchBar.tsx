@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { styled } from 'styled-components';
 import { getSicks } from '../../../api/sick';
 import ResultBox from './ResultBox';
@@ -45,8 +45,10 @@ const SearchBar = () => {
     const value = e.target.value.trim();
     if (value === '') {
       setSearchResults([]);
+      setShowResultBox(false); // Hide the result box when the input is empty
     } else {
       fetchSearchResults(value, setSearchResults);
+      setShowResultBox(true); // Show the result box only when there is a non-empty value
     }
   }, 1000);
 
@@ -54,10 +56,8 @@ const SearchBar = () => {
     const value = searchInputRef.current?.value.trim() || '';
     if (value !== '') {
       fetchSearchResults(value, setSearchResults);
+      setShowResultBox(true);
     }
-
-    // resultbox를 항상 보이도록 설정
-    setShowResultBox(true);
   };
 
   // 검색 버튼 클릭 시 실행되는 함수
@@ -72,25 +72,11 @@ const SearchBar = () => {
     handleSearch();
   };
 
-  // 외부 클릭 시 검색 결과 숨기는 함수
-  const handleOutsideClick = (e: MouseEvent) => {
-    if (
-      searchInputRef.current &&
-      !searchInputRef.current.contains(e.target as Node) &&
-      e.target !== searchInputRef.current
-    ) {
-      setSearchResults([]); // 검색 결과 숨기기
+  const handleFocus = () => {
+    if (searchInputRef.current?.value) {
+      setShowResultBox(true);
     }
   };
-
-  useEffect(() => {
-    document.addEventListener('click', handleOutsideClick);
-
-    // 컴포넌트가 언마운트되면 이벤트 리스너 제거
-    return () => {
-      document.removeEventListener('click', handleOutsideClick);
-    };
-  }, []);
 
   return (
     <SearchContainer>
@@ -99,21 +85,22 @@ const SearchBar = () => {
           type='text'
           ref={searchInputRef}
           onChange={handleOnChangeInput}
-          onClick={() => setShowResultBox(true)} // 검색 버튼 또는 엔터를 눌렀을 때 resultbox가 나타나도록 수정
           onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => {
             if (e.key === 'Enter') {
               handleSearch();
             }
           }}
-          onFocus={() => setShowResultBox(true)}
-          onBlur={() => setShowResultBox(false)}
+          onFocus={handleFocus}
           data-testid='search-input'
         />
         <button onClick={handleSearchClick}>검색</button>
       </form>
-      {showResultBox && (
+      {(showResultBox || searchResults.length > 0) && (
         <div style={{ position: 'relative' }}>
-          <ResultBox searchResults={searchResults} searchInput={searchInputRef.current?.value || ''} />
+          <ResultBox
+            searchResults={searchResults}
+            searchInput={searchInputRef.current?.value || ''}
+          />
         </div>
       )}
     </SearchContainer>
