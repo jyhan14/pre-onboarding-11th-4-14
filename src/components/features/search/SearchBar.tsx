@@ -6,12 +6,21 @@ import { useDebounce } from '../../../hooks/useDebounce';
 
 const SearchBar = () => {
   const [isSearchStart, setIsSearchStart] = useState(false);
-  const [searchResults, setSearchResults] = useState<any[]>([]); // any타입 수정필요..?
-  const [hasSearchStarted, setHasSearchStarted] = useState(false); // 새로운 상태 변수
-  const searchInputRef = useRef<HTMLInputElement | null>(null); // 검색 입력 요소에 대한 ref
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [hasSearchStarted, setHasSearchStarted] = useState(false); 
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [recentSearchWords, setRecentSearchWords] = useState<string[]>([]);
+
+   // 컴포넌트 마운트 시 세션 스토리지에서 최근 검색어 로드
+  useEffect(() => {
+    const savedRecentSearchWords = sessionStorage.getItem('recent_search_words');
+    if (savedRecentSearchWords) {
+      setRecentSearchWords(JSON.parse(savedRecentSearchWords));
+    }
+  }, []);
 
   const handleOnChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // ref를 사용하기 때문에 검색 입력에 대한 상태 사용이 불필요
+   // ref를 사용하기 때문에 검색 입력에 대한 상태 사용이 불필요
     debounce(e);
   };
 
@@ -22,28 +31,36 @@ const SearchBar = () => {
       setSearchResults([]); // searchInput이 비어 있는 경우 검색 결과 지우기
       setHasSearchStarted(false); // searchInput이 비어 있는 경우 검색 상태 재설정
     } else {
-      setHasSearchStarted(true); // 검색 프로세스 시작
+      setHasSearchStarted(true); //검색 프로세스 시작
       getSicks(value)
         .then(data => {
           setSearchResults(data);
         })
         .catch(error => {
-          console.error('검색 결과를 가져오는 중 오류가 발생했습니다:', error);
+          console.error('Error fetching search results:', error);
         });
+
+     // 최근 검색어 목록에 검색어 추가
+      setRecentSearchWords(prevWords => [value, ...prevWords]); // Use array instead of Set
     }
   }, 1000);
+
+// 최근 검색어가 변경될 때마다 세션 스토리지에 저장
+  useEffect(() => {
+    sessionStorage.setItem('recent_search_words', JSON.stringify(recentSearchWords));
+  }, [recentSearchWords]);
 
   useEffect(() => {
     document.addEventListener('click', handleOutsideClick);
 
-    // 컴포넌트가 언마운트되면 이벤트 리스너를 remove
+     // 컴포넌트가 언마운트되면 이벤트 리스너 제거
     return () => {
       document.removeEventListener('click', handleOutsideClick);
     };
   }, []);
 
   const handleOutsideClick = (e: MouseEvent) => {
-    // searchInputRef를 사용하여 클릭된 요소가 SearchInput 요소가 아닌지 확인
+   // searchInputRef를 사용하여 클릭된 요소가 SearchInput 요소가 아닌지 확인
     if (
       searchInputRef.current &&
       !searchInputRef.current.contains(e.target as Node) &&
@@ -65,10 +82,11 @@ const SearchBar = () => {
       <button>검색</button>
       {isSearchStart && hasSearchStarted && (
         <div style={{ position: 'relative' }}>
-          {/* searchResults 및 searchInput을 속성으로 전달*/}
+          {/* searchResults, searchInput 및 recentSearchWords를 속성으로 전달 */}
           <ResultBox
             searchResults={searchResults}
             searchInput={searchInputRef.current?.value || ''}
+            recentSearchWords={recentSearchWords} // 최근 검색어를 추가합니다.
           />
         </div>
       )}

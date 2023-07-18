@@ -1,3 +1,5 @@
+// ResultBox.tsx
+
 import React, { useEffect, useState } from 'react';
 import { styled } from 'styled-components';
 
@@ -9,14 +11,15 @@ interface SearchResult {
 interface ResultBoxProps {
   searchResults: SearchResult[];
   searchInput: string;
+  recentSearchWords: string[];
 }
 
-const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput }) => {
+const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput, recentSearchWords }) => {
   const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setIsLoading(true); // 필터링 이전에 로딩 상태를 true로 설정
+    setIsLoading(true);
 
     const filterResults = async () => {
       try {
@@ -32,7 +35,7 @@ const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput }) => 
       } catch (error) {
         console.error('검색 결과 필터링 중 오류 발생:', error);
       } finally {
-        setIsLoading(false); // 필터링이 완료되면 로딩 상태를 false로 설정
+        setIsLoading(false);
       }
     };
 
@@ -40,7 +43,6 @@ const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput }) => 
   }, [searchResults, searchInput]);
 
   useEffect(() => {
-    // filteredResults가 변경되면 isLoading을 false로 설정
     setIsLoading(false);
   }, [filteredResults]);
 
@@ -49,6 +51,18 @@ const ResultBox: React.FC<ResultBoxProps> = ({ searchResults, searchInput }) => 
       <div>
         <div>{searchInput}</div>
       </div>
+
+      {/* 최근 검색어 표시 */}
+      {recentSearchWords.length > 0 && (
+        <>
+          <RecentSearchLabel>최근 검색어</RecentSearchLabel>
+          <RecentSearchList>
+            {recentSearchWords.map(word => (
+              <RecentSearchItem key={word}>{word}</RecentSearchItem>
+            ))}
+          </RecentSearchList>
+        </>
+      )}
 
       {isLoading ? (
         <div>검색중...</div>
@@ -91,4 +105,26 @@ const ResultLabel = styled.div`
   font-size: 16px;
   font-weight: bold;
   margin-bottom: 8px;
+`;
+
+const RecentSearchLabel = styled.div`
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 4px;
+`;
+
+const RecentSearchList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+`;
+
+const RecentSearchItem = styled.div`
+  margin-right: 8px;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #f2f2f2;
+  font-size: 14px;
+  cursor: pointer;
 `;
