@@ -3,8 +3,7 @@ import { styled } from 'styled-components';
 import { getSicks } from '../../../api/sick';
 import ResultBox, { ResultBoxRef } from './ResultBox';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { HiMagnifyingGlass } from "react-icons/hi2";
-
+import { HiMagnifyingGlass } from 'react-icons/hi2';
 
 export interface SearchResult {
   sickCd: string;
@@ -59,9 +58,7 @@ const SearchBar = () => {
     }
   };
 
-  // 검색 버튼 클릭 시 실행되는 함수
-  const handleSearchClick = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    e.preventDefault(); // 버튼 클릭 기본 동작 막기
+  const handleSearchAction = () => {
     handleSearch();
   };
 
@@ -112,11 +109,18 @@ const SearchBar = () => {
             type='text'
             ref={searchInputRef}
             onChange={handleOnChangeInput}
-            onKeyDown={handleKeyDown}
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSearchAction();
+              } else {
+                handleKeyDown(e);
+              }
+            }}
             onFocus={handleFocus}
             data-testid='search-input'
           />
-          <SearchBtn onClick={handleSearchClick}>검색</SearchBtn>
+          <SearchBtn type='submit'>검색</SearchBtn>
         </SearchContainer>
       </form>
       {(showResultBox || searchResults.length > 0) && (
@@ -125,7 +129,7 @@ const SearchBar = () => {
             ref={resultBoxRef}
             searchResults={searchResults}
             searchInput={searchInputRef.current?.value || ''}
-            searchInputRef={searchInputRef} // searchInputRef를 prop으로 전달
+            searchInputRef={searchInputRef}
           />
         </div>
       )}
@@ -172,11 +176,13 @@ const SearchInput = styled.input`
 `;
 
 const SearchBtn = styled.button`
-position: absolute;
-top: 0;
-right: 0;
+  cursor: pointer;
+
+  position: absolute;
+  top: 0;
+  right: 0;
   border: none;
-  background-color: #0081CF;
+  background-color: #0081cf;
   border-top-right-radius: 42px;
   border-bottom-right-radius: 42px;
   padding: 10px 20px;
@@ -184,5 +190,4 @@ right: 0;
 
   color: white;
   text-align: center;
-
 `;
