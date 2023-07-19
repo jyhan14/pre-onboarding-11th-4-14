@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useImperativeHandle, useCallback } from 'react';
 import { styled } from 'styled-components';
+import { HiMagnifyingGlass } from "react-icons/hi2";
 
 interface SearchResult {
   sickCd: string;
@@ -97,7 +98,7 @@ const ResultBox = React.forwardRef<ResultBoxRef, ResultBoxProps>((props, ref) =>
 
   return (
     <BoxContainer ref={resultBoxRef} onKeyDown={handleKeyDown} tabIndex={0}>
-      <div>{searchInput}</div>
+      <SearchInput>{searchInput}</SearchInput>
       {!isLoading ? (
         <>
           {searchResults.length > 0 ? (
@@ -109,16 +110,16 @@ const ResultBox = React.forwardRef<ResultBoxRef, ResultBoxProps>((props, ref) =>
                   tabIndex={0}
                   className={index === selectedIndex ? 'selected' : ''}
                   onClick={() => handleItemClick(index)}>
-                  검색 결과: {result.sickNm}
+                  <HiMagnifyingGlass/>  {result.sickNm}
                 </ResultItem>
               ))}
             </>
           ) : (
-            <div>검색결과 없음</div>
+            <Text>검색결과 없음</Text>
           )}
         </>
       ) : (
-        <div>검색중...</div>
+        <Text>검색중...</Text>
       )}
     </BoxContainer>
   );
@@ -128,31 +129,34 @@ export default ResultBox;
 
 const BoxContainer = styled.div`
   position: absolute;
-  top: 30px;
-  right: 30px;
-  padding: 20px;
+  top: 35px;
+  right: 0px;
+  padding: 15px;
   z-index: 2010;
-  width: 550px;
+  width: 500px;
   border-radius: 18px;
   background: #fff;
-  box-shadow:
-    0 2px 6px 0 rgb(0 0 0 / 100%),
-    0 0 1px 0 rgb(0 21 81 / 5%);
+  box-shadow: 0px 2px 4px rgba(30, 32, 37, 0.1);
   box-sizing: border-box;
 
   &:focus {
     outline: none;
   }
 `;
-
+const SearchInput = styled.div`
+  padding: 5px;
+  margin-bottom: 10px;
+`
 const ResultLabel = styled.div`
-  font-size: 16px;
+  font-size: 12px;
   font-weight: bold;
   margin-bottom: 8px;
 `;
 
 const ResultItem = styled.div`
   cursor: pointer;
+gap: 5px;
+padding: 5px;
 
   &.selected {
     font-weight: bold;
@@ -166,3 +170,7 @@ const ResultItem = styled.div`
     outline: none;
   }
 `;
+
+const Text = styled.div`
+  font-size: 14px;
+`

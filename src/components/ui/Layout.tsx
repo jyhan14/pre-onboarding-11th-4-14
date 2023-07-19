@@ -13,5 +13,5 @@ export default Layout;
 
 const LayoutContainer = styled.div`
 position: relative;
-top: 80px;
+top: 100px;
 `;

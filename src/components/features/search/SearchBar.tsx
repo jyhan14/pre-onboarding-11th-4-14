@@ -3,6 +3,8 @@ import { styled } from 'styled-components';
 import { getSicks } from '../../../api/sick';
 import ResultBox, { ResultBoxRef } from './ResultBox';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { HiMagnifyingGlass } from "react-icons/hi2";
+
 
 export interface SearchResult {
   sickCd: string;
@@ -102,17 +104,20 @@ const SearchBar = () => {
   };
 
   return (
-    <SearchContainer>
+    <Container>
       <form onSubmit={handleFormSubmit}>
-        <SearchInput
-          type='text'
-          ref={searchInputRef}
-          onChange={handleOnChangeInput}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          data-testid='search-input'
-        />
-        <button onClick={handleSearchClick}>검색</button>
+        <SearchContainer>
+          <MagnifyingGlass />
+          <SearchInput
+            type='text'
+            ref={searchInputRef}
+            onChange={handleOnChangeInput}
+            onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            data-testid='search-input'
+          />
+          <SearchBtn onClick={handleSearchClick}>검색</SearchBtn>
+        </SearchContainer>
       </form>
       {(showResultBox || searchResults.length > 0) && (
         <div style={{ position: 'relative' }}>
@@ -124,16 +129,26 @@ const SearchBar = () => {
           />
         </div>
       )}
-    </SearchContainer>
+    </Container>
   );
 };
 
 export default SearchBar;
-
-const SearchContainer = styled.div`
+const Container = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+`;
+
+const SearchContainer = styled.div`
+  position: relative;
+`;
+
+const MagnifyingGlass = styled(HiMagnifyingGlass)`
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
 `;
 
 const SearchInput = styled.input`
@@ -141,14 +156,33 @@ const SearchInput = styled.input`
   justify-content: center;
   align-items: center;
   width: 500px;
-  padding-left: 20px;
+  padding-left: 40px;
   padding-right: 20px;
   padding-top: 12px;
   padding-bottom: 12px;
+  margin-top: 20px;
   box-shadow: 0px 2px 4px rgba(30, 32, 37, 0.1);
   cursor: pointer;
   border-radius: 42px;
-  border: 1;
-  border-color: black;
   background-color: #ffffff;
+
+  &:focus {
+    outline: none;
+  }
+`;
+
+const SearchBtn = styled.button`
+position: absolute;
+top: 0;
+right: 0;
+  border: none;
+  background-color: #0081CF;
+  border-top-right-radius: 42px;
+  border-bottom-right-radius: 42px;
+  padding: 10px 20px;
+  margin-left: -1px;
+
+  color: white;
+  text-align: center;
+
 `;
