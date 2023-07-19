@@ -1,6 +1,20 @@
 import { createGlobalStyle } from 'styled-components';
-
+import NotoSansKR_Medium from '../assets/Fonts/NotoSansKR_Medium.otf';
+import NotoSansKR_Regular from '../assets/Fonts/NotoSansKR_Regular.otf';
 export const GlobalStyles = createGlobalStyle`
+
+@font-face {
+    font-family: 'NotoSansKR';
+    src: local('NotoSansKR_Medium'), url(${NotoSansKR_Medium});
+    font-weight: 500;
+}
+
+@font-face {
+    font-family: 'NotoSansKR';
+    src: local('NotoSansKR_Regular'), url(${NotoSansKR_Regular});
+    font-weight: 400;
+}
+
     * {
         border: 0 solid #e5e7eb;
         box-sizing: border-box;
@@ -33,6 +47,7 @@ export const GlobalStyles = createGlobalStyle`
     body {
         line-height: 1;
         background-color: #e9ecef;
+        font-family: NotoSansKR;
     }
     div, input{
         box-sizing : border-box;
