@@ -8,9 +8,9 @@
 ## ABOUT
 
 <div>
-  <div style="text-align: right"> 2023.07.16 ~ 2023.07.19 </div>
+  <div align="right"> 2023.07.16 ~ 2023.07.19 </div>
     <p> 질환명 검색시 API 호출을 통해서 검색어 추천 기능을 구현하는 프로젝트입니다. </p>
-    <div align="center"><a href="https://pre-onboarding-11th-4-14-basf9e2yq-jyhan14.vercel.app/"><strong>👉 배포 링크</strong></a> </div>
+    <div><a href="https://pre-onboarding-11th-4-14.vercel.app/"><strong>👉 배포 링크</strong></a> </div>
 
    ### 요구사항
    - 검색어가 없을 시 "검색어 없음" 표출
@@ -211,6 +211,9 @@ npm start
 - 추천 검색 결과에서 키보드 ⬆️ 버튼으로 검색창으로 이동 가능
 
 #### 구현결과
-
+<div align="center">
+  
 ![Alt text](/src/assets/img/README_keyboard_example.gif)
+
+</div>
 <br />
