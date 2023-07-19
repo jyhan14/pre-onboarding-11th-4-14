@@ -106,38 +106,57 @@ npm start
 3. CacheStorage
     * 비동기방식으로 메인스레드 연산 중단되지 않음
     * 다양한 데이터 저장
-### 캐싱 필요 기능과 캐싱 방법 선정
-* 추천검색어 기능 : <b>CacheStorage</b>
+#### 캐싱 필요 기능과 캐싱 방법 선정
+* 추천검색어 기능 : <b>CacheStorage</b> <br/>
+💡사용자가 동일한 검색어로 반복적인 검색을 할 때 발생하는 불필요한 서버 요청을 최소화하기 위해 캐싱을 구현.<br/> 💡검색 결과는 5분 동안 캐시에 저장되며, 만료되면 서버에서 새로운 데이터를 가져와 캐시를 갱신
     * 캐싱 방법 선정시 고려된 사항
         * 사용자의 입력중 디바운스 되어 서버와 통신하여 응답 받은 데이터이다
         * json 형태로 문자열만 저장가능한 SessionStorage, LocalStorage에 저장하기에 적당하지 않다
-    * 구현 코드
+        * CacheStorage는 브라우저 캐시 용량을 공유함. 캐싱하려는 데이터의 크기가 클 경우에는 CacheStorage를 사용하는 것이 더 적합하다.
+* 구현 코드
     ```javaScript
-        // 비동기 함수로 검색 결과를 가져오고 캐시에 저장하는 함수
-        const fetchSearchResults = async (value: string) => {
+     // 비동기 함수로 검색 결과를 가져오고 캐시에 저장하는 함수
+    const fetchSearchResults = async (value: string) => {
+        const cacheName = 'searchResultsCache'; // 캐시 이름을 정의
+        const cache = await caches.open(cacheName); // 캐시를 열고 반환
+        const cachedResponse = await cache.match(value); // 캐시에서 검색어에 해당하는 데이터 조회
 
-        //caches.open('searchResultsCache')를 통해 cache storage를 열고, 이미 캐싱된 응답 데이터를 확인
-        const cache = await caches.open('searchResultsCache');
-        const cachedResponse = await cache.match(value);
-
-       //이미 캐싱된 응답이 있다면, 해당 응답을 JSON 형태로 파싱하여 setSearchResults 함수를 통해 검색 결과를 설정
         if (cachedResponse) {
-            cachedResponse.json().then(data => {
-            setSearchResults(data); // 캐시에서 검색 결과 가져오기
-            });
-        } else {
-            // 캐시에 데이터가 없는 경우 API 호출을 통해 검색 결과 가져오기
-            getSicks(value)
-            .then(data => {
-                setSearchResults(data);
-                cache.put(value, new Response(JSON.stringify(data))); // 추천 검색 결과를 캐시에 저장
-            })
-            .catch(error => {
-                console.error('검색 결과를 가져오는 중 오류 발생:', error);
-                setSearchResults([]); // 에러 발생 시 검색 결과 초기화
-            });
+            // 캐시된 데이터가 있으면 실행
+            const dataWithExpiration = await cachedResponse.json(); // 캐시된 데이터의 만료 시간과 데이터 추출
+            const { value: data, expiration } = dataWithExpiration;
+
+            if (Date.now() < expiration) {
+            // 캐시된 데이터가 만료되지 않았으면 실행
+            setSearchResults(data); // 캐시된 데이터를 검색 결과로 사용
+            return; // 함수 종료
+            } else {
+            // 캐시된 데이터가 만료된 경우 실행
+            await cache.delete(value); // 캐시에서 해당 데이터 삭제
+            setSearchResults([]); // 검색 결과 초기화하여 보여주지 않음
+            }
         }
-        };
+
+        // 서버에서 새로운 데이터를 가져와서 캐시에 저장
+        const cacheExpireTime = 5 * 60 * 1000; // 캐시 만료 시간: 5분 (5 * 60초를 밀리초로 변환)
+        try {
+            const data = await getSicks(value); // 서버에서 새로운 검색 결과 데이터 가져옴
+            setSearchResults(data); // 새로운 검색 결과를 보여줌
+            const expiration = Date.now() + cacheExpireTime; // 캐시 만료 시간 계산
+            const dataWithExpiration = {
+            value: data,
+            expiration,
+            };
+            const response = new Response(JSON.stringify(dataWithExpiration), {
+            headers: { 'Cache-Control': `max-age=${cacheExpireTime / 1000}` },
+            });
+            cache.put(value, response); // 캐시에 새로운 검색 결과를 저장
+        } catch (error) {
+            console.error('Error while fetching search results:', error);
+            setSearchResults([]); // 검색 결과를 초기화하여 보여주지 않음
+        }
+    };
+
     ```
 ### 입력마다 API 호출하지 않도록 API 호출 횟수를 줄이는 전략 수립 및 실행
 #### 디바운싱(Debouncing) vs 쓰로틀링(Throttling)
@@ -187,11 +206,11 @@ npm start
     - 검색어 입력이 연속적으로 이루어지는 동안에는 useDebounce에 의해 지정된 1000ms(1초)의 디바운스 시간 동안 여러 번 호출되어도 fetchSearchResults 함수가 실행되지 않는다.
     - 입력이 멈추면 1초 이후에 fetchSearchResults 함수가 호출되어 API를 호출하고, 검색 결과를 가져온다.
 ### 키보드만으로 추천 검색어들로 이동 가능하도록 구현
-#### 사용법 및 구현 결과
-💡 검색창에서 키워드를 검색 한 후 키보드 ⬇️ 버튼으로 추천 검색 결과로 이동 가능 <br/>
-💡 추천 검색 결과에서 키보드 ⬆️ 버튼으로 검색창으로 이동 가능  <br/>
+#### 사용법
+-  검색창에서 키워드를 검색 한 후 키보드 ⬇️ 버튼으로 추천 검색 결과로 이동 가능
+- 추천 검색 결과에서 키보드 ⬆️ 버튼으로 검색창으로 이동 가능
 
-💡 구현결과
+#### 구현결과
 
 ![Alt text](/src/assets/img/README_keyboard_example.gif)
 <br />
