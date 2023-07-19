@@ -18,24 +18,41 @@ const SearchBar = () => {
 
   // 비동기 함수로 검색 결과를 가져오고 캐시에 저장하는 함수
   const fetchSearchResults = async (value: string) => {
-    const cache = await caches.open('searchResultsCache');
+    const cacheName = 'searchResultsCache';
+    const cache = await caches.open(cacheName);
     const cachedResponse = await cache.match(value);
 
     if (cachedResponse) {
-      cachedResponse.json().then(data => {
-        setSearchResults(data); // 캐시에서 검색 결과 가져오기
+      const dataWithExpiration = await cachedResponse.json();
+      const { value: data, expiration } = dataWithExpiration;
+
+      if (Date.now() < expiration) {
+        // 만료되지 않았으면 캐시된 데이터를 사용
+        setSearchResults(data);
+        return; // 만료되지 않았으면 함수 종료
+      } else {
+        // 만료된 데이터이므로 캐시에서 제거
+        await cache.delete(value); // 캐시에서 해당 데이터를 삭제
+      }
+    }
+
+    // 서버에서 새로운 데이터를 가져와서 캐시에 저장
+    const cacheExpireTime = 5 * 60 * 1000; // 테스트를 위해 5분(5 * 60초) 설정
+    try {
+      const data = await getSicks(value);
+      setSearchResults(data);
+      const expiration = Date.now() + cacheExpireTime;
+      const dataWithExpiration = {
+        value: data,
+        expiration,
+      };
+      const response = new Response(JSON.stringify(dataWithExpiration), {
+        headers: { 'Cache-Control': `max-age=${cacheExpireTime / 1000}` },
       });
-    } else {
-      // 캐시에 데이터가 없는 경우 API 호출을 통해 검색 결과 가져오기
-      getSicks(value)
-        .then(data => {
-          setSearchResults(data);
-          cache.put(value, new Response(JSON.stringify(data))); // 추천 검색 결과를 캐시에 저장
-        })
-        .catch(error => {
-          console.error('검색 결과를 가져오는 중 오류 발생:', error);
-          setSearchResults([]); // 에러 발생 시 검색 결과 초기화
-        });
+      cache.put(value, response); // 캐시에 결과를 저장
+    } catch (error) {
+      console.error('Error while fetching search results:', error);
+      setSearchResults([]); // 검색 결과를 초기화하여 보여주지 않음
     }
   };
 
